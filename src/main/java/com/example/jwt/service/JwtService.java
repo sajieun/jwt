@@ -1,8 +1,10 @@
 package com.example.jwt.service;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +17,7 @@ import java.util.Map;
 @Service
 public class JwtService {
 
-    private static String secretKey = "";
+    private static String secretKey = "java11SpringBootJWTTokenIssueMethod"; // 임의로 아무거나 길게 넣어주기
     public String create(
             Map<String,Object> claims,
             LocalDateTime expireAt
@@ -36,14 +38,26 @@ public class JwtService {
         var parser = Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build();
+        try {
+            var result = parser.parseClaimsJws(token);
 
-        var result = parser.parseClaimsJws(token);
+            // 정상적으로 실행이 될때
+            result.getBody().entrySet().forEach(
+                    value -> {
+                        log.info("key : {} , value : {} ",value.getKey(),value.getValue());
+                    }
+            );
+        }catch (Exception e){
+            if (e instanceof SignatureException){
 
-        result.getBody().entrySet().forEach(
-                value -> {
-                    log.info("key : {} , value : {} ",value.getKey(),value.getValue());
-                }
-        );
+            } else if (e instanceof ExpiredJwtException) {
+                throw new RuntimeException("JWT Token Expired Exception");
+            }else {
+                throw new RuntimeException("JWT Token Validation Exception");
+            }
+        }
+
+
 
     }
 }
